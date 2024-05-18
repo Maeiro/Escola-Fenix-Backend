@@ -7,7 +7,9 @@ const client = new Client({
   }
 });
 
-client.connect();
+client.connect()
+  .then(() => console.log('Conexão com o banco de dados estabelecida'))
+  .catch(err => console.error('Erro ao conectar ao banco de dados', err));
 
 function getAllAlunos(callback) {
   client.query('SELECT * FROM alunos', (err, res) => {
@@ -32,20 +34,26 @@ function addAluno(aluno, callback) {
 
 function updateAluno(id, aluno, callback) {
   const { nome, turma, totalFaltas } = aluno;
-  client.query('UPDATE alunos SET nome = $1, turma = $2, total_faltas = $3 WHERE id = $4', [nome, turma, totalFaltas, id], (err) => {
+  client.query('UPDATE alunos SET nome = $1, turma = $2, total_faltas = $3 WHERE id = $4', [nome, turma, totalFaltas, id], (err, res) => {
     if (err) {
       console.error(err);
       return callback(err);
+    }
+    if (res.rowCount === 0) {
+      return callback(new Error('Aluno não encontrado para atualização'));
     }
     callback(null);
   });
 }
 
 function removeAluno(id, callback) {
-  client.query('DELETE FROM alunos WHERE id = $1', [id], (err) => {
+  client.query('DELETE FROM alunos WHERE id = $1', [id], (err, res) => {
     if (err) {
       console.error(err);
       return callback(err);
+    }
+    if (res.rowCount === 0) {
+      return callback(new Error('Aluno não encontrado para remoção'));
     }
     callback(null);
   });
