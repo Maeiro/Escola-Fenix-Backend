@@ -1,42 +1,48 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const dbPath = path.resolve(__dirname, './escola-fenix.db');
-const db = new sqlite3.Database(dbPath);
+const { Client } = require('pg');
+
+const client = new Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false
+  }
+});
+
+client.connect();
 
 function getAllAlunos(callback) {
-  db.all('SELECT * FROM alunos', (err, rows) => {
+  client.query('SELECT * FROM alunos', (err, res) => {
     if (err) {
       console.error(err);
       return callback(err, null);
     }
-    callback(null, rows);
+    callback(null, res.rows);
   });
 }
 
 function addAluno(aluno, callback) {
-  db.run('INSERT INTO alunos (nome, turma, totalFaltas) VALUES (?, ?, ?)',
-    [aluno.nome, aluno.turma, aluno.totalFaltas], (err) => {
-      if (err) {
-        console.error(err);
-        return callback(err);
-      }
-      callback(null);
-    });
+  const { nome, turma, totalFaltas } = aluno;
+  client.query('INSERT INTO alunos (nome, turma, total_faltas) VALUES ($1, $2, $3)', [nome, turma, totalFaltas], (err) => {
+    if (err) {
+      console.error(err);
+      return callback(err);
+    }
+    callback(null);
+  });
 }
 
 function updateAluno(id, aluno, callback) {
-  db.run('UPDATE alunos SET nome = ?, turma = ?, totalFaltas = ? WHERE id = ?',
-    [aluno.nome, aluno.turma, aluno.totalFaltas, id], (err) => {
-      if (err) {
-        console.error(err);
-        return callback(err);
-      }
-      callback(null);
-    });
+  const { nome, turma, totalFaltas } = aluno;
+  client.query('UPDATE alunos SET nome = $1, turma = $2, total_faltas = $3 WHERE id = $4', [nome, turma, totalFaltas, id], (err) => {
+    if (err) {
+      console.error(err);
+      return callback(err);
+    }
+    callback(null);
+  });
 }
 
 function removeAluno(id, callback) {
-  db.run('DELETE FROM alunos WHERE id = ?', id, (err) => {
+  client.query('DELETE FROM alunos WHERE id = $1', [id], (err) => {
     if (err) {
       console.error(err);
       return callback(err);

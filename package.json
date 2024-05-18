@@ -6,8 +6,9 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.19.2",
-    "sqlite3": "^5.1.7",
-    "cors": "^2.8.5"
+    "pg": "^8.11.5",
+    "sqlite3": "^5.1.7"
   }
 }
