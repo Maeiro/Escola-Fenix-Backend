@@ -61,9 +61,61 @@ function removeAluno(id, callback) {
   });
 }
 
+function registerPresenca(alunoId, data, presente, callback) {
+  client.query('BEGIN', (err) => {
+    if (err) {
+      console.error('Erro ao iniciar a transação', err);
+      return callback(err);
+    }
+
+    client.query('INSERT INTO presencas (aluno_id, data, presente) VALUES ($1, $2, $3)', [alunoId, data, presente], (err) => {
+      if (err) {
+        console.error('Erro ao inserir presença', err);
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(err);
+        });
+      }
+
+      if (!presente) {
+        client.query('UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1', [alunoId], (err) => {
+          if (err) {
+            console.error('Erro ao atualizar total_faltas', err);
+            return client.query('ROLLBACK', (errRollback) => {
+              if (errRollback) {
+                console.error('Erro ao fazer rollback', errRollback);
+              }
+              return callback(err);
+            });
+          }
+
+          client.query('COMMIT', (err) => {
+            if (err) {
+              console.error('Erro ao fazer commit', err);
+              return callback(err);
+            }
+            callback(null);
+          });
+        });
+      } else {
+        client.query('COMMIT', (err) => {
+          if (err) {
+            console.error('Erro ao fazer commit', err);
+            return callback(err);
+          }
+          callback(null);
+        });
+      }
+    });
+  });
+}
+
 module.exports = {
   getAllAlunos,
   addAluno,
   updateAluno,
-  removeAluno
+  removeAluno,
+  registerPresenca,
 };

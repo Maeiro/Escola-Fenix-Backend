@@ -57,6 +57,17 @@ app.delete('/alunos/:id', (req, res) => {
   });
 });
 
+// Rota para registrar a presença de um aluno
+app.post('/presencas', (req, res) => {
+  const { alunoId, data, presente } = req.body;
+  dataService.registerPresenca(alunoId, data, presente, (err) => {
+    if (err) {
+      return res.status(500).send('Erro ao registrar presença');
+    }
+    res.send('Presença registrada');
+  });
+});
+
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
   console.log('Backend iniciado com sucesso!');
