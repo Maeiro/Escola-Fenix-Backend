@@ -35,8 +35,8 @@ function addAluno(aluno, callback) {
 }
 
 function updateAluno(id, aluno, callback) {
-  const { nome, turma, totalFaltas } = aluno;
-  client.query('UPDATE alunos SET nome = $1, turma = $2, total_faltas = $3 WHERE id = $4', [nome, turma, totalFaltas, id], (err, res) => {
+  const { nome, turma, total_faltas } = aluno;
+  client.query('UPDATE alunos SET nome = $1, turma = $2, total_faltas = $3 WHERE id = $4', [nome, turma, total_faltas, id], (err, res) => {
     if (err) {
       console.error(err);
       return callback(err);
