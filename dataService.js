@@ -24,8 +24,8 @@ function getAllAlunos(callback) {
 }
 
 function addAluno(aluno, callback) {
-  const { id, nome, turma, total_faltas } = aluno;
-  client.query('INSERT INTO alunos (id, nome, turma, total_faltas) VALUES ($1, $2, $3, $4)', [id, nome, turma, total_faltas], (err) => {
+  const { nome, turma, total_faltas } = aluno;
+  client.query('INSERT INTO alunos (nome, turma, total_faltas) VALUES ($1, $2, $3)', [nome, turma, total_faltas], (err) => {
     if (err) {
       console.error(err);
       return callback(err);
