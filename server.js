@@ -68,6 +68,16 @@ app.post('/presencas', (req, res) => {
   });
 });
 
+app.get('/faltas', (req, res) => {
+  dataService.getFaltas((err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Erro ao buscar faltas' });
+    } else {
+      res.json(result);
+    }
+  });
+});
+
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
   console.log('Backend iniciado com sucesso!');
