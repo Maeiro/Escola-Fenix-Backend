@@ -112,10 +112,9 @@ function registerPresenca(alunoId, data, presente, callback) {
 
 function getFaltas(callback) {
   client.query(`
-    SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, alunos.nome AS aluno_nome, alunos.turma
+    SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, alunos.nome AS aluno_nome, alunos.turma, alunos.total_faltas
     FROM presencas
     JOIN alunos ON presencas.aluno_id = alunos.id
-    WHERE presencas.presente = false
     ORDER BY presencas.data DESC
   `, (err, res) => {
     if (err) {
@@ -125,6 +124,7 @@ function getFaltas(callback) {
     callback(null, res.rows);
   });
 }
+
 
 module.exports = {
   getAllAlunos,
