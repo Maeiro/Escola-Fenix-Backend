@@ -15,113 +15,114 @@ app.get('/', (req, res) => {
 });
 
 // Rota para buscar todos os alunos
-app.get('/alunos', async (req, res) => {
-  try {
-    const alunos = await dataService.getAllAlunos();
+app.get('/alunos', (req, res) => {
+  dataService.getAllAlunos((err, alunos) => {
+    if (err) {
+      return res.status(500).send('Erro ao buscar alunos');
+    }
     res.json(alunos);
-  } catch (err) {
-    res.status(500).send('Erro ao buscar alunos');
-  }
+  });
 });
 
 // Rota para adicionar um novo aluno
-app.post('/alunos', async (req, res) => {
-  try {
-    const aluno = req.body;
-    await dataService.addAluno(aluno);
+app.post('/alunos', (req, res) => {
+  const aluno = req.body;
+  dataService.addAluno(aluno, (err) => {
+    if (err) {
+      return res.status(500).send('Erro ao adicionar aluno');
+    }
     res.send('Aluno adicionado');
-  } catch (err) {
-    res.status(500).send('Erro ao adicionar aluno');
-  }
+  });
 });
 
 // Rota para atualizar um aluno existente
-app.put('/alunos/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    const aluno = req.body;
-    await dataService.updateAluno(id, aluno);
+app.put('/alunos/:id', (req, res) => {
+  const id = req.params.id;
+  const aluno = req.body;
+  dataService.updateAluno(id, aluno, (err) => {
+    if (err) {
+      return res.status(500).send('Erro ao atualizar aluno');
+    }
     res.send('Aluno atualizado');
-  } catch (err) {
-    res.status(500).send('Erro ao atualizar aluno');
-  }
+  });
 });
 
 // Rota para remover um aluno
-app.delete('/alunos/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    await dataService.removeAluno(id);
+app.delete('/alunos/:id', (req, res) => {
+  const id = req.params.id;
+  dataService.removeAluno(id, (err) => {
+    if (err) {
+      return res.status(500).send('Erro ao remover aluno');
+    }
     res.send('Aluno removido');
-  } catch (err) {
-    res.status(500).send('Erro ao remover aluno');
-  }
+  });
 });
 
 // Rota para registrar a presença de um aluno
-app.post('/registroPresenca', async (req, res) => {
-  try {
-    const { alunoId, data, presente } = req.body;
-    await dataService.registerPresenca(alunoId, data, presente);
+app.post('/registroPresenca', (req, res) => {
+  const { alunoId, data, presente } = req.body;
+  dataService.registerPresenca(alunoId, data, presente, (err) => {
+    if (err) {
+      return res.status(500).send('Erro ao registrar presença');
+    }
     res.send('Presença registrada');
-  } catch (err) {
-    res.status(500).send('Erro ao registrar presença');
-  }
+  });
 });
 
 // Rota para buscar todas as presenças
-app.get('/presencas', async (req, res) => {
-  try {
-    const result = await dataService.getFaltas();
-    res.json(result);
-  } catch (err) {
-    res.status(500).json({ error: 'Erro ao buscar presenças' });
-  }
+app.get('/presencas', (req, res) => {
+  dataService.getFaltas((err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Erro ao buscar presenças' });
+    } else {
+      res.json(result);
+    }
+  });
 });
 
 // Rota para buscar faltas e presenças filtradas
-app.get('/filterPresencas', async (req, res) => {
-  try {
-    const filters = req.query;
-    const result = await dataService.getFilteredFaltas(filters);
+app.get('/filterPresencas', (req, res) => {
+  const filters = req.query;
+  dataService.getFilteredFaltas(filters, (err, result) => {
+    if (err) {
+      return res.status(500).send('Erro ao filtrar presenças');
+    }
     res.json(result);
-  } catch (err) {
-    res.status(500).send('Erro ao filtrar presenças');
-  }
+  });
 });
 
 // Rota para buscar alunos filtrados
-app.get('/filterAlunos', async (req, res) => {
-  try {
-    const filters = req.query;
-    const alunos = await dataService.getFilteredAlunos(filters);
+app.get('/filterAlunos', (req, res) => {
+  const filters = req.query;
+  dataService.getFilteredAlunos(filters, (err, alunos) => {
+    if (err) {
+      return res.status(500).send('Erro ao filtrar alunos');
+    }
     res.json(alunos);
-  } catch (err) {
-    res.status(500).send('Erro ao filtrar alunos');
-  }
+  });
 });
 
 // Rota para remover uma presença
-app.delete('/presencas/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    await dataService.removePresenca(id);
+app.delete('/presencas/:id', (req, res) => {
+  const id = req.params.id;
+  dataService.removePresenca(id, (err) => {
+    if (err) {
+      return res.status(500).send('Erro ao remover presença');
+    }
     res.send('Presença removida');
-  } catch (err) {
-    res.status(500).send('Erro ao remover presença');
-  }
+  });
 });
 
 // Rota para atualizar a presença de um aluno
-app.put('/presencas/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-    const { presente } = req.body;
-    await dataService.updatePresenca(id, presente);
+app.put('/presencas/:id', (req, res) => {
+  const id = req.params.id;
+  const { presente } = req.body;
+  dataService.updatePresenca(id, presente, (err) => {
+    if (err) {
+      return res.status(500).send('Erro ao atualizar presença');
+    }
     res.send('Presença atualizada');
-  } catch (err) {
-    res.status(500).send('Erro ao atualizar presença');
-  }
+  });
 });
 
 app.listen(port, () => {

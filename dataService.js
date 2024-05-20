@@ -11,155 +11,366 @@ client.connect()
   .then(() => console.log('Conexão com o banco de dados estabelecida'))
   .catch(err => console.error('Erro ao conectar ao banco de dados', err));
 
-async function queryHandler(query, params = []) {
-  try {
-    const res = await client.query(query, params);
-    return res.rows;
-  } catch (err) {
-    console.error('Erro ao executar query', err);
-    throw err;
-  }
-}
-
-async function getAllAlunos() {
-  return queryHandler('SELECT * FROM alunos');
-}
-
-async function addAluno(aluno) {
-  const { nome, turma, total_faltas } = aluno;
-  await queryHandler('INSERT INTO alunos (nome, turma, total_faltas) VALUES ($1, $2, $3)', [nome, turma, total_faltas]);
-}
-
-async function updateAluno(id, aluno) {
-  const { nome, turma, total_faltas } = aluno;
-  try {
-    await client.query('BEGIN');
-    const res = await queryHandler('UPDATE alunos SET nome = $1, turma = $2, total_faltas = $3 WHERE id = $4', [nome, turma, total_faltas, id]);
-    if (res.length === 0) throw new Error('Aluno não encontrado para atualização');
-    await client.query('COMMIT');
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Erro ao atualizar aluno', err);
-    throw err;
-  }
-}
-
-async function removeAluno(id) {
-  try {
-    await client.query('BEGIN');
-    await queryHandler('DELETE FROM presencas WHERE aluno_id = $1', [id]);
-    const res = await queryHandler('DELETE FROM alunos WHERE id = $1', [id]);
-    if (res.length === 0) throw new Error('Aluno não encontrado para remoção');
-    await client.query('COMMIT');
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Erro ao remover aluno', err);
-    throw err;
-  }
-}
-async function registerPresenca(alunoId, data, presente) {
-  try {
-    await client.query('BEGIN');
-    await queryHandler('INSERT INTO presencas (aluno_id, data, presente) VALUES ($1, $2, $3)', [alunoId, data, presente]);
-    if (!presente) {
-      await queryHandler('UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1', [alunoId]);
+function getAllAlunos(callback) {
+  client.query('SELECT * FROM alunos', (err, res) => {
+    if (err) {
+      console.error(err);
+      return callback(err, null);
     }
-    await client.query('COMMIT');
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Erro ao registrar presença', err);
-    throw err;
-  }
+    callback(null, res.rows);
+  });
 }
 
-async function getFaltas() {
-  return queryHandler(`
-    SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, 
-           alunos.nome AS aluno_nome, alunos.turma, alunos.total_faltas
+function addAluno(aluno, callback) {
+  const { nome, turma, total_faltas } = aluno;
+  client.query('INSERT INTO alunos (nome, turma, total_faltas) VALUES ($1, $2, $3)', [nome, turma, total_faltas], (err) => {
+    if (err) {
+      console.error(err);
+      return callback(err);
+    }
+    callback(null);
+  });
+}
+
+function updateAluno(id, aluno, callback) {
+  const { nome, turma, total_faltas } = aluno;
+  client.query('UPDATE alunos SET nome = $1, turma = $2, total_faltas = $3 WHERE id = $4', [nome, turma, total_faltas, id], (err, res) => {
+    if (err) {
+      console.error(err);
+      return callback(err);
+    }
+    if (res.rowCount === 0) {
+      return callback(new Error('Aluno não encontrado para atualização'));
+    }
+    callback(null);
+  });
+}
+
+function removeAluno(id, callback) {
+  client.query('DELETE FROM alunos WHERE id = $1', [id], (err, res) => {
+    if (err) {
+      console.error(err);
+      return callback(err);
+    }
+    if (res.rowCount === 0) {
+      return callback(new Error('Aluno não encontrado para remoção'));
+    }
+    callback(null);
+  });
+}
+
+function registerPresenca(alunoId, data, presente, callback) {
+  client.query('BEGIN', (err) => {
+    if (err) {
+      console.error('Erro ao iniciar a transação', err);
+      return callback(err);
+    }
+
+    client.query('INSERT INTO presencas (aluno_id, data, presente) VALUES ($1, $2, $3)', [alunoId, data, presente], (err) => {
+      if (err) {
+        console.error('Erro ao inserir presença', err);
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(err);
+        });
+      }
+
+      if (!presente) {
+        client.query('UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1', [alunoId], (err) => {
+          if (err) {
+            console.error('Erro ao atualizar total_faltas', err);
+            return client.query('ROLLBACK', (errRollback) => {
+              if (errRollback) {
+                console.error('Erro ao fazer rollback', errRollback);
+              }
+              return callback(err);
+            });
+          }
+
+          client.query('COMMIT', (err) => {
+            if (err) {
+              console.error('Erro ao fazer commit', err);
+              return callback(err);
+            }
+            callback(null);
+          });
+        });
+      } else {
+        client.query('COMMIT', (err) => {
+          if (err) {
+            console.error('Erro ao fazer commit', err);
+            return callback(err);
+          }
+          callback(null);
+        });
+      }
+    });
+  });
+}
+
+function getFaltas(callback) {
+  client.query(`
+    SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, alunos.nome AS aluno_nome, alunos.turma, alunos.total_faltas
     FROM presencas
     JOIN alunos ON presencas.aluno_id = alunos.id
     ORDER BY presencas.data DESC
-  `);
-}
-
-async function buildFilteredQuery(baseQuery, filters) {
-  let query = baseQuery;
-  const queryParams = [];
-
-  for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined && value !== '') {
-      const column = key === 'presente' ? 'presencas.presente' :
-        key === 'totalFaltas' ? 'alunos.total_faltas' :
-          key === 'data' ? 'presencas.data' :
-            key === 'aluno' ? 'alunos.nome' : `alunos.${key}`;
-      const operator = (key === 'presente' || key === 'data' || key === 'totalFaltas') ? '=' : 'ILIKE';
-      queryParams.push(operator === 'ILIKE' ? `%${value}%` : value);
-      query += ` AND ${column} ${operator} $${queryParams.length}`;
+  `, (err, res) => {
+    if (err) {
+      console.error(err);
+      return callback(err, null);
     }
-  }
-
-  query += ' ORDER BY presencas.data DESC';
-  return { query, queryParams };
+    callback(null, res.rows);
+  });
 }
 
-async function getFilteredFaltas(filters) {
-  const baseQuery = `
+function getFilteredFaltas(filters, callback) {
+  const { aluno, turma, data, totalFaltas, presente } = filters;
+
+  let query = `
     SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, 
            alunos.nome AS aluno_nome, alunos.turma, alunos.total_faltas
     FROM presencas
     JOIN alunos ON presencas.aluno_id = alunos.id
     WHERE 1=1
   `;
-  const { query, queryParams } = await buildFilteredQuery(baseQuery, filters);
-  return queryHandler(query, queryParams);
-}
 
-async function getFilteredAlunos(filters) {
-  const baseQuery = 'SELECT * FROM alunos WHERE 1=1';
-  const { query, queryParams } = await buildFilteredQuery(baseQuery, filters);
-  return queryHandler(query, queryParams);
-}
+  const queryParams = [];
 
-async function removePresenca(id) {
-  try {
-    await client.query('BEGIN');
-    const res = await queryHandler('SELECT presente, aluno_id FROM presencas WHERE id = $1', [id]);
-    if (res.length === 0) throw new Error('Presença não encontrada para remoção');
-
-    const { presente, aluno_id } = res[0];
-    await queryHandler('DELETE FROM presencas WHERE id = $1', [id]);
-    if (!presente) await queryHandler('UPDATE alunos SET total_faltas = total_faltas - 1 WHERE id = $1', [aluno_id]);
-    await client.query('COMMIT');
-  } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
+  if (aluno) {
+    queryParams.push(`%${aluno}%`);
+    query += ` AND alunos.nome ILIKE $${queryParams.length}`;
   }
-}
 
-async function updatePresenca(id, presente) {
-  try {
-    await client.query('BEGIN');
-    const res = await queryHandler('SELECT presente, aluno_id FROM presencas WHERE id = $1', [id]);
-    if (res.length === 0) throw new Error('Presença não encontrada para atualização');
+  if (turma) {
+    queryParams.push(turma);
+    query += ` AND alunos.turma = $${queryParams.length}`;
+  }
 
-    const { presente: oldPresente, aluno_id } = res[0];
-    if (presente === oldPresente) throw new Error('Nenhuma alteração na presença detectada');
+  if (data) {
+    queryParams.push(data);
+    query += ` AND presencas.data::date = $${queryParams.length}`;
+  }
 
-    await queryHandler('UPDATE presencas SET presente = $1 WHERE id = $2', [presente, id]);
-    const faltasQuery = presente
-      ? 'UPDATE alunos SET total_faltas = total_faltas - 1 WHERE id = $1'
-      : 'UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1';
-    await queryHandler(faltasQuery, [aluno_id]);
-    await client.query('COMMIT');
-  } catch (err) {
-    console.error(err.message, err);
-    try {
-      await client.query('ROLLBACK');
-    } catch (rollbackErr) {
-      console.error('Erro ao fazer rollback', rollbackErr);
+  if (totalFaltas) {
+    queryParams.push(totalFaltas);
+    query += ` AND alunos.total_faltas = $${queryParams.length}`;
+  }
+
+  if (presente !== undefined && presente !== '') {
+    queryParams.push(presente === 'true');
+    query += ` AND presencas.presente = $${queryParams.length}`;
+  }
+
+  query += ` ORDER BY presencas.data DESC`;
+
+  client.query(query, queryParams, (err, res) => {
+    if (err) {
+      console.error('Erro ao buscar presenças com filtros:', err);
+      return callback(err, null);
     }
-    throw err;
+    callback(null, res.rows);
+  });
+}
+
+function getFilteredAlunos(filters, callback) {
+  const { id, nome, turma, totalFaltas } = filters;
+  let query = 'SELECT * FROM alunos WHERE 1=1';
+  const queryParams = [];
+
+  if (id) {
+    queryParams.push(id);
+    query += ` AND id = $${queryParams.length}`;
   }
+  if (nome) {
+    queryParams.push(`%${nome}%`);
+    query += ` AND nome ILIKE $${queryParams.length}`;
+  }
+  if (turma) {
+    queryParams.push(turma);
+    query += ` AND turma = $${queryParams.length}`;
+  }
+  if (totalFaltas) {
+    queryParams.push(totalFaltas);
+    query += ` AND total_faltas = $${queryParams.length}`;
+  }
+
+  client.query(query, queryParams, (err, res) => {
+    if (err) {
+      console.error(err);
+      return callback(err, null);
+    }
+    callback(null, res.rows);
+  });
+}
+
+function removePresenca(id, callback) {
+  client.query('BEGIN', (err) => {
+    if (err) {
+      console.error('Erro ao iniciar a transação', err);
+      return callback(err);
+    }
+
+    client.query('SELECT presente, aluno_id FROM presencas WHERE id = $1', [id], (err, res) => {
+      if (err) {
+        console.error('Erro ao buscar presença', err);
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(err);
+        });
+      }
+
+      if (res.rowCount === 0) {
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(new Error('Presença não encontrada para remoção'));
+        });
+      }
+
+      const { presente, aluno_id } = res.rows[0];
+
+      client.query('DELETE FROM presencas WHERE id = $1', [id], (err, res) => {
+        if (err) {
+          console.error('Erro ao remover presença', err);
+          return client.query('ROLLBACK', (errRollback) => {
+            if (errRollback) {
+              console.error('Erro ao fazer rollback', errRollback);
+            }
+            return callback(err);
+          });
+        }
+
+        if (res.rowCount === 0) {
+          return client.query('ROLLBACK', (errRollback) => {
+            if (errRollback) {
+              console.error('Erro ao fazer rollback', errRollback);
+            }
+            return callback(new Error('Presença não encontrada para remoção'));
+          });
+        }
+
+        if (!presente) {
+          client.query('UPDATE alunos SET total_faltas = total_faltas - 1 WHERE id = $1', [aluno_id], (err) => {
+            if (err) {
+              console.error('Erro ao atualizar total de faltas', err);
+              return client.query('ROLLBACK', (errRollback) => {
+                if (errRollback) {
+                  console.error('Erro ao fazer rollback', errRollback);
+                }
+                return callback(err);
+              });
+            }
+
+            client.query('COMMIT', (err) => {
+              if (err) {
+                console.error('Erro ao fazer commit', err);
+                return callback(err);
+              }
+              callback(null);
+            });
+          });
+        } else {
+          client.query('COMMIT', (err) => {
+            if (err) {
+              console.error('Erro ao fazer commit', err);
+              return callback(err);
+            }
+            callback(null);
+          });
+        }
+      });
+    });
+  });
+}
+
+function updatePresenca(id, presente, callback) {
+  client.query('BEGIN', (err) => {
+    if (err) {
+      console.error('Erro ao iniciar a transação', err);
+      return callback(err);
+    }
+
+    client.query('SELECT presente, aluno_id FROM presencas WHERE id = $1', [id], (err, res) => {
+      if (err) {
+        console.error('Erro ao buscar presença', err);
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(err);
+        });
+      }
+
+      if (res.rowCount === 0) {
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(new Error('Presença não encontrada para atualização'));
+        });
+      }
+
+      const { presente: oldPresente, aluno_id } = res.rows[0];
+
+      if (presente === oldPresente) {
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(new Error('Nenhuma alteração na presença detectada'));
+        });
+      }
+
+      const updateQuery = 'UPDATE presencas SET presente = $1 WHERE id = $2';
+      client.query(updateQuery, [presente, id], (err) => {
+        if (err) {
+          console.error('Erro ao atualizar presença', err);
+          return client.query('ROLLBACK', (errRollback) => {
+            if (errRollback) {
+              console.error('Erro ao fazer rollback', errRollback);
+            }
+            return callback(err);
+          });
+        }
+
+        let faltasQuery;
+        let faltasParams;
+
+        if (presente) {
+          faltasQuery = 'UPDATE alunos SET total_faltas = total_faltas - 1 WHERE id = $1';
+          faltasParams = [aluno_id];
+        } else {
+          faltasQuery = 'UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1';
+          faltasParams = [aluno_id];
+        }
+
+        client.query(faltasQuery, faltasParams, (err) => {
+          if (err) {
+            console.error('Erro ao atualizar total de faltas', err);
+            return client.query('ROLLBACK', (errRollback) => {
+              if (errRollback) {
+                console.error('Erro ao fazer rollback', errRollback);
+              }
+              return callback(err);
+            });
+          }
+
+          client.query('COMMIT', (err) => {
+            if (err) {
+              console.error('Erro ao fazer commit', err);
+              return callback(err);
+            }
+            callback(null);
+          });
+        });
+      });
+    });
+  });
 }
 
 module.exports = {
