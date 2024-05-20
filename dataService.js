@@ -69,7 +69,7 @@ async function buildFilteredQuery(baseQuery, filters) {
 
   for (const [key, value] of Object.entries(filters)) {
     if (value !== undefined && value !== '') {
-      const column = key === 'presente' ? 'presencas.presente' : key === 'totalFaltas' ? 'alunos.total_faltas' : `alunos.${key}`;
+      const column = key === 'presente' ? 'presencas.presente' : key === 'total_faltas' ? 'alunos.total_faltas' : `alunos.${key}`;
       const operator = key === 'presente' ? '=' : 'ILIKE';
       queryParams.push(key === 'presente' ? value === 'true' : `%${value}%`);
       query += ` AND ${column} ${operator} $${queryParams.length}`;
