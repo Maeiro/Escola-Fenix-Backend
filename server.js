@@ -91,7 +91,7 @@ app.get('/filterPresencas', (req, res) => {
 
 app.get('/filterAlunos', (req, res) => {
   const filters = req.query;
-  dataService.getFilterAlunos(filters, (err, alunos) => {
+  dataService.getFilteredAlunos(filters, (err, alunos) => {
     if (err) {
       return res.status(500).send('Erro ao filtrar alunos');
     }

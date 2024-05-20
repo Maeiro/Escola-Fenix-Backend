@@ -172,33 +172,33 @@ function getFilteredFaltas(filters, callback) {
     }
     callback(null, res.rows);
   });
+}
 
-  function getFilterAlunos(filters, callback) {
-    const { nome, turma, totalFaltas } = filters;
-    let query = 'SELECT * FROM alunos WHERE 1=1';
-    const queryParams = [];
+function getFilteredAlunos(filters, callback) {
+  const { nome, turma, totalFaltas } = filters;
+  let query = 'SELECT * FROM alunos WHERE 1=1';
+  const queryParams = [];
 
-    if (nome) {
-      queryParams.push(`%${nome}%`);
-      query += ` AND nome ILIKE $${queryParams.length}`;
-    }
-    if (turma) {
-      queryParams.push(turma);
-      query += ` AND turma = $${queryParams.length}`;
-    }
-    if (totalFaltas) {
-      queryParams.push(totalFaltas);
-      query += ` AND total_faltas = $${queryParams.length}`;
-    }
-
-    client.query(query, queryParams, (err, res) => {
-      if (err) {
-        console.error(err);
-        return callback(err, null);
-      }
-      callback(null, res.rows);
-    });
+  if (nome) {
+    queryParams.push(`%${nome}%`);
+    query += ` AND nome ILIKE $${queryParams.length}`;
   }
+  if (turma) {
+    queryParams.push(turma);
+    query += ` AND turma = $${queryParams.length}`;
+  }
+  if (totalFaltas) {
+    queryParams.push(totalFaltas);
+    query += ` AND total_faltas = $${queryParams.length}`;
+  }
+
+  client.query(query, queryParams, (err, res) => {
+    if (err) {
+      console.error(err);
+      return callback(err, null);
+    }
+    callback(null, res.rows);
+  });
 }
 
 module.exports = {
@@ -209,5 +209,5 @@ module.exports = {
   registerPresenca,
   getFaltas,
   getFilteredFaltas,
-  getFilterAlunos,
+  getFilteredAlunos,
 };
