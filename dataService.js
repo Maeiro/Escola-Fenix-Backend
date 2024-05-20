@@ -205,6 +205,19 @@ function getFilteredAlunos(filters, callback) {
   });
 }
 
+function removePresenca(id, callback) {
+  client.query('DELETE FROM presencas WHERE id = $1', [id], (err, res) => {
+    if (err) {
+      console.error('Erro ao remover presença', err);
+      return callback(err);
+    }
+    if (res.rowCount === 0) {
+      return callback(new Error('Presença não encontrada para remoção'));
+    }
+    callback(null);
+  });
+}
+
 module.exports = {
   getAllAlunos,
   addAluno,
@@ -214,4 +227,5 @@ module.exports = {
   getFaltas,
   getFilteredFaltas,
   getFilteredAlunos,
+  removePresenca
 };

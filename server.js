@@ -99,6 +99,17 @@ app.get('/filterAlunos', (req, res) => {
   });
 });
 
+// Rota para remover uma presença
+app.delete('/presencas/:id', (req, res) => {
+  const id = req.params.id;
+  dataService.removePresenca(id, (err) => {
+    if (err) {
+      return res.status(500).send('Erro ao remover presença');
+    }
+    res.send('Presença removida');
+  });
+});
+
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
   console.log('Backend iniciado com sucesso!');
