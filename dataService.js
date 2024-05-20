@@ -175,10 +175,14 @@ function getFilteredFaltas(filters, callback) {
 }
 
 function getFilteredAlunos(filters, callback) {
-  const { nome, turma, totalFaltas } = filters;
+  const { id, nome, turma, totalFaltas } = filters;
   let query = 'SELECT * FROM alunos WHERE 1=1';
   const queryParams = [];
 
+  if (id) {
+    queryParams.push(id);
+    query += ` AND id = $${queryParams.length}`;
+  }
   if (nome) {
     queryParams.push(`%${nome}%`);
     query += ` AND nome ILIKE $${queryParams.length}`;
