@@ -78,15 +78,15 @@ app.get('/presencas', (req, res) => {
   });
 });
 
-// Rota para buscar faltas filtradas
+// Rota para buscar faltas e presenças filtradas
 app.get('/filterPresencas', (req, res) => {
   const filters = req.query;
-  dataService.get(`${backendUrl}/filterPresencas`, { params: filters })
-    .then(response => res.json(response.data))
-    .catch(err => {
-      console.error(err);
-      res.status(500).send('Erro ao filtrar presenças');
-    });
+  dataService.filterPresencas(filters, (err, result) => {
+    if (err) {
+      return res.status(500).send('Erro ao filtrar presenças');
+    }
+    res.json(result);
+  });
 });
 
 app.listen(port, () => {
