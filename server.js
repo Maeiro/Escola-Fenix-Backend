@@ -110,6 +110,18 @@ app.delete('/presencas/:id', (req, res) => {
   });
 });
 
+// Rota para atualizar a presença de um aluno
+app.put('/presencas/:id', (req, res) => {
+  const id = req.params.id;
+  const { presente } = req.body;
+  dataService.updatePresenca(id, presente, (err) => {
+    if (err) {
+      return res.status(500).send('Erro ao atualizar presença');
+    }
+    res.send('Presença atualizada');
+  });
+});
+
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
   console.log('Backend iniciado com sucesso!');

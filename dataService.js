@@ -288,6 +288,93 @@ function removePresenca(id, callback) {
   });
 }
 
+function updatePresenca(id, presente, callback) {
+  client.query('BEGIN', (err) => {
+    if (err) {
+      console.error('Erro ao iniciar a transação', err);
+      return callback(err);
+    }
+
+    client.query('SELECT presente, aluno_id FROM presencas WHERE id = $1', [id], (err, res) => {
+      if (err) {
+        console.error('Erro ao buscar presença', err);
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(err);
+        });
+      }
+
+      if (res.rowCount === 0) {
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(new Error('Presença não encontrada para atualização'));
+        });
+      }
+
+      const { presente: oldPresente, aluno_id } = res.rows[0];
+
+      if (presente === oldPresente) {
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(new Error('Nenhuma alteração na presença detectada'));
+        });
+      }
+
+      const updateQuery = 'UPDATE presencas SET presente = $1 WHERE id = $2';
+      client.query(updateQuery, [presente, id], (err) => {
+        if (err) {
+          console.error('Erro ao atualizar presença', err);
+          return client.query('ROLLBACK', (errRollback) => {
+            if (errRollback) {
+              console.error('Erro ao fazer rollback', errRollback);
+            }
+            return callback(err);
+          });
+        }
+
+        let faltasQuery;
+        let faltasParams;
+
+        if (presente) {
+          // Mudança de falta para presença
+          faltasQuery = 'UPDATE alunos SET total_faltas = total_faltas - 1 WHERE id = $1';
+          faltasParams = [aluno_id];
+        } else {
+          // Mudança de presença para falta
+          faltasQuery = 'UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1';
+          faltasParams = [aluno_id];
+        }
+
+        client.query(faltasQuery, faltasParams, (err) => {
+          if (err) {
+            console.error('Erro ao atualizar total de faltas', err);
+            return client.query('ROLLBACK', (errRollback) => {
+              if (errRollback) {
+                console.error('Erro ao fazer rollback', errRollback);
+              }
+              return callback(err);
+            });
+          }
+
+          client.query('COMMIT', (err) => {
+            if (err) {
+              console.error('Erro ao fazer commit', err);
+              return callback(err);
+            }
+            callback(null);
+          });
+        });
+      });
+    });
+  });
+}
+
 module.exports = {
   getAllAlunos,
   addAluno,
@@ -297,5 +384,6 @@ module.exports = {
   getFaltas,
   getFilteredFaltas,
   getFilteredAlunos,
-  removePresenca
+  removePresenca,
+  updatePresenca
 };
