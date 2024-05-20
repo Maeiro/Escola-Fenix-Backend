@@ -125,7 +125,7 @@ function getFaltas(callback) {
   });
 }
 
-function filterPresencas(filters, callback) {
+function getFilteredFaltas(filters, callback) {
   const { aluno, turma, data, totalFaltas, presente } = filters;
 
   let query = `
