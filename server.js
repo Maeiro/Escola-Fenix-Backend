@@ -58,7 +58,7 @@ app.delete('/alunos/:id', (req, res) => {
 });
 
 // Rota para registrar a presença de um aluno
-app.post('/presencas', (req, res) => {
+app.post('/registroPresenca', (req, res) => {
   const { alunoId, data, presente } = req.body;
   dataService.registerPresenca(alunoId, data, presente, (err) => {
     if (err) {
@@ -68,14 +68,25 @@ app.post('/presencas', (req, res) => {
   });
 });
 
-app.get('/faltas', (req, res) => {
+app.get('/presencas', (req, res) => {
   dataService.getFaltas((err, result) => {
     if (err) {
-      res.status(500).json({ error: 'Erro ao buscar faltas' });
+      res.status(500).json({ error: 'Erro ao buscar presenças' });
     } else {
       res.json(result);
     }
   });
+});
+
+// Rota para buscar faltas filtradas
+app.get('/filterPresencas', (req, res) => {
+  const filters = req.query;
+  axios.get(`${backendUrl}/filterPresencas`, { params: filters })
+    .then(response => res.json(response.data))
+    .catch(err => {
+      console.error(err);
+      res.status(500).send('Erro ao filtrar presenças');
+    });
 });
 
 app.listen(port, () => {

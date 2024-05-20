@@ -125,6 +125,50 @@ function getFaltas(callback) {
   });
 }
 
+function getFilteredFaltas(filters, callback) {
+  let query = `
+    SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, alunos.nome AS aluno_nome, alunos.turma, alunos.total_faltas
+    FROM presencas
+    JOIN alunos ON presencas.aluno_id = alunos.id
+  `;
+  const conditions = [];
+  const values = [];
+
+  if (filters.nome) {
+    conditions.push(`alunos.nome ILIKE $${values.length + 1}`);
+    values.push(`%${filters.nome}%`);
+  }
+  if (filters.turma) {
+    conditions.push(`alunos.turma = $${values.length + 1}`);
+    values.push(filters.turma);
+  }
+  if (filters.data) {
+    conditions.push(`presencas.data::date = $${values.length + 1}`);
+    values.push(filters.data);
+  }
+  if (filters.presente !== undefined) {
+    conditions.push(`presencas.presente = $${values.length + 1}`);
+    values.push(filters.presente);
+  }
+  if (filters.total_faltas !== undefined) {
+    conditions.push(`alunos.total_faltas = $${values.length + 1}`);
+    values.push(filters.total_faltas);
+  }
+
+  if (conditions.length > 0) {
+    query += ` WHERE ${conditions.join(' AND ')}`;
+  }
+
+  query += ' ORDER BY presencas.data DESC';
+
+  client.query(query, values, (err, res) => {
+    if (err) {
+      console.error(err);
+      return callback(err, null);
+    }
+    callback(null, res.rows);
+  });
+}
 
 module.exports = {
   getAllAlunos,
@@ -132,5 +176,6 @@ module.exports = {
   updateAluno,
   removeAluno,
   registerPresenca,
-  getFaltas
+  getFaltas,
+  getFilteredFaltas,
 };
