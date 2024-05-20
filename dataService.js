@@ -71,9 +71,10 @@ async function buildFilteredQuery(baseQuery, filters) {
     if (value !== undefined && value !== '') {
       const column = key === 'presente' ? 'presencas.presente' :
         key === 'totalFaltas' ? 'alunos.total_faltas' :
-          key === 'data' ? 'presencas.data' : `alunos.${key}`;
-      const operator = key === 'presente' || key === 'data' ? '=' : 'ILIKE';
-      queryParams.push(key === 'presente' ? value === 'true' : `%${value}%`);
+          key === 'data' ? 'presencas.data' :
+            key === 'aluno' ? 'alunos.nome' : `alunos.${key}`;
+      const operator = (key === 'presente' || key === 'data' || key === 'totalFaltas') ? '=' : 'ILIKE';
+      queryParams.push(operator === 'ILIKE' ? `%${value}%` : value);
       query += ` AND ${column} ${operator} $${queryParams.length}`;
     }
   }
