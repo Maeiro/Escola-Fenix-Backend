@@ -32,23 +32,42 @@ async function addAluno(aluno) {
 
 async function updateAluno(id, aluno) {
   const { nome, turma, total_faltas } = aluno;
-  const res = await queryHandler('UPDATE alunos SET nome = $1, turma = $2, total_faltas = $3 WHERE id = $4', [nome, turma, total_faltas, id]);
-  if (res.length === 0) throw new Error('Aluno não encontrado para atualização');
+  try {
+    await client.query('BEGIN');
+    const res = await queryHandler('UPDATE alunos SET nome = $1, turma = $2, total_faltas = $3 WHERE id = $4', [nome, turma, total_faltas, id]);
+    if (res.length === 0) throw new Error('Aluno não encontrado para atualização');
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Erro ao atualizar aluno', err);
+    throw err;
+  }
 }
 
 async function removeAluno(id) {
-  const res = await queryHandler('DELETE FROM alunos WHERE id = $1', [id]);
-  if (res.length === 0) throw new Error('Aluno não encontrado para remoção');
+  try {
+    await client.query('BEGIN');
+    await queryHandler('DELETE FROM presencas WHERE aluno_id = $1', [id]);
+    const res = await queryHandler('DELETE FROM alunos WHERE id = $1', [id]);
+    if (res.length === 0) throw new Error('Aluno não encontrado para remoção');
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Erro ao remover aluno', err);
+    throw err;
+  }
 }
-
 async function registerPresenca(alunoId, data, presente) {
   try {
     await client.query('BEGIN');
     await queryHandler('INSERT INTO presencas (aluno_id, data, presente) VALUES ($1, $2, $3)', [alunoId, data, presente]);
-    if (!presente) await queryHandler('UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1', [alunoId]);
+    if (!presente) {
+      await queryHandler('UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1', [alunoId]);
+    }
     await client.query('COMMIT');
   } catch (err) {
     await client.query('ROLLBACK');
+    console.error('Erro ao registrar presença', err);
     throw err;
   }
 }
