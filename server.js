@@ -89,6 +89,16 @@ app.get('/filterPresencas', (req, res) => {
   });
 });
 
+app.get('/filterAlunos', (req, res) => {
+  const filters = req.query;
+  dataService.getFilterAlunos(filters, (err, alunos) => {
+    if (err) {
+      return res.status(500).send('Erro ao filtrar alunos');
+    }
+    res.json(alunos);
+  });
+});
+
 app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
   console.log('Backend iniciado com sucesso!');
