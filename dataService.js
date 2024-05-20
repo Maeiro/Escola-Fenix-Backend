@@ -125,45 +125,49 @@ function getFaltas(callback) {
   });
 }
 
-function getFilteredFaltas(filters, callback) {
+function filterPresencas(filters, callback) {
+  const { aluno, turma, data, totalFaltas, presente } = filters;
+
   let query = `
-    SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, alunos.nome AS aluno_nome, alunos.turma, alunos.total_faltas
+    SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, 
+           alunos.nome AS aluno_nome, alunos.turma, alunos.total_faltas
     FROM presencas
     JOIN alunos ON presencas.aluno_id = alunos.id
+    WHERE 1=1
   `;
-  const conditions = [];
-  const values = [];
 
-  if (filters.nome) {
-    conditions.push(`alunos.nome ILIKE $${values.length + 1}`);
-    values.push(`%${filters.nome}%`);
-  }
-  if (filters.turma) {
-    conditions.push(`alunos.turma = $${values.length + 1}`);
-    values.push(filters.turma);
-  }
-  if (filters.data) {
-    conditions.push(`presencas.data::date = $${values.length + 1}`);
-    values.push(filters.data);
-  }
-  if (filters.presente !== undefined) {
-    conditions.push(`presencas.presente = $${values.length + 1}`);
-    values.push(filters.presente);
-  }
-  if (filters.total_faltas !== undefined) {
-    conditions.push(`alunos.total_faltas = $${values.length + 1}`);
-    values.push(filters.total_faltas);
+  const queryParams = [];
+
+  if (aluno) {
+    queryParams.push(`%${aluno}%`);
+    query += ` AND alunos.nome ILIKE $${queryParams.length}`;
   }
 
-  if (conditions.length > 0) {
-    query += ` WHERE ${conditions.join(' AND ')}`;
+  if (turma) {
+    queryParams.push(turma);
+    query += ` AND alunos.turma = $${queryParams.length}`;
   }
 
-  query += ' ORDER BY presencas.data DESC';
+  if (data) {
+    queryParams.push(data);
+    query += ` AND presencas.data::date = $${queryParams.length}`;
+  }
 
-  client.query(query, values, (err, res) => {
+  if (totalFaltas) {
+    queryParams.push(totalFaltas);
+    query += ` AND alunos.total_faltas = $${queryParams.length}`;
+  }
+
+  if (presente !== undefined && presente !== '') {
+    queryParams.push(presente === 'true');
+    query += ` AND presencas.presente = $${queryParams.length}`;
+  }
+
+  query += ` ORDER BY presencas.data DESC`;
+
+  client.query(query, queryParams, (err, res) => {
     if (err) {
-      console.error(err);
+      console.error('Erro ao buscar presenças com filtros:', err);
       return callback(err, null);
     }
     callback(null, res.rows);
