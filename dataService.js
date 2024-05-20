@@ -206,15 +206,85 @@ function getFilteredAlunos(filters, callback) {
 }
 
 function removePresenca(id, callback) {
-  client.query('DELETE FROM presencas WHERE id = $1', [id], (err, res) => {
+  client.query('BEGIN', (err) => {
     if (err) {
-      console.error('Erro ao remover presença', err);
+      console.error('Erro ao iniciar a transação', err);
       return callback(err);
     }
-    if (res.rowCount === 0) {
-      return callback(new Error('Presença não encontrada para remoção'));
-    }
-    callback(null);
+
+    client.query('SELECT presente, aluno_id FROM presencas WHERE id = $1', [id], (err, res) => {
+      if (err) {
+        console.error('Erro ao buscar presença', err);
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(err);
+        });
+      }
+
+      if (res.rowCount === 0) {
+        return client.query('ROLLBACK', (errRollback) => {
+          if (errRollback) {
+            console.error('Erro ao fazer rollback', errRollback);
+          }
+          return callback(new Error('Presença não encontrada para remoção'));
+        });
+      }
+
+      const { presente, aluno_id } = res.rows[0];
+
+      client.query('DELETE FROM presencas WHERE id = $1', [id], (err, res) => {
+        if (err) {
+          console.error('Erro ao remover presença', err);
+          return client.query('ROLLBACK', (errRollback) => {
+            if (errRollback) {
+              console.error('Erro ao fazer rollback', errRollback);
+            }
+            return callback(err);
+          });
+        }
+
+        if (res.rowCount === 0) {
+          return client.query('ROLLBACK', (errRollback) => {
+            if (errRollback) {
+              console.error('Erro ao fazer rollback', errRollback);
+            }
+            return callback(new Error('Presença não encontrada para remoção'));
+          });
+        }
+
+        if (!presente) {
+          client.query('UPDATE alunos SET total_faltas = total_faltas - 1 WHERE id = $1', [aluno_id], (err) => {
+            if (err) {
+              console.error('Erro ao atualizar total de faltas', err);
+              return client.query('ROLLBACK', (errRollback) => {
+                if (errRollback) {
+                  console.error('Erro ao fazer rollback', errRollback);
+                }
+                return callback(err);
+              });
+            }
+
+            client.query('COMMIT', (err) => {
+              if (err) {
+                console.error('Erro ao fazer commit', err);
+                return callback(err);
+              }
+              callback(null);
+            });
+          });
+        } else {
+          client.query('COMMIT', (err) => {
+            if (err) {
+              console.error('Erro ao fazer commit', err);
+              return callback(err);
+            }
+            callback(null);
+          });
+        }
+      });
+    });
   });
 }
 
