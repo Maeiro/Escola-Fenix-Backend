@@ -51,8 +51,10 @@ async function removeAluno(id) {
 
 async function registerPresenca(alunoId, data, presente) {
   try {
+    console.log(`Registrando presença: alunoId=${alunoId}, data=${data}, presente=${presente}`);
     await client.query('BEGIN');
-    await queryHandler('INSERT INTO presencas (aluno_id, data, presente) VALUES ($1, $2, $3)', [alunoId, data, presente]);
+    const result = await queryHandler('INSERT INTO presencas (aluno_id, data, presente) VALUES ($1, $2, $3)', [alunoId, data, presente]);
+    console.log(`Resultado da inserção: ${result}`);
     if (!presente) {
       await queryHandler('UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1', [alunoId]);
     }
@@ -62,6 +64,7 @@ async function registerPresenca(alunoId, data, presente) {
     throw err;
   }
 }
+
 
 async function getFaltas() {
   return queryHandler(`
