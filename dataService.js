@@ -342,11 +342,9 @@ function updatePresenca(id, presente, callback) {
         let faltasParams;
 
         if (presente) {
-          // Mudança de falta para presença
           faltasQuery = 'UPDATE alunos SET total_faltas = total_faltas - 1 WHERE id = $1';
           faltasParams = [aluno_id];
         } else {
-          // Mudança de presença para falta
           faltasQuery = 'UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1';
           faltasParams = [aluno_id];
         }

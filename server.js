@@ -1,4 +1,4 @@
-//server.js
+// server.js
 
 const express = require('express');
 const cors = require('cors');
@@ -9,6 +9,7 @@ const dataService = require('./dataService.js');
 app.use(cors());
 app.use(express.json());
 
+// Rota para verificar se o backend está funcionando
 app.get('/', (req, res) => {
   res.send('Backend funcionando!');
 });
@@ -68,6 +69,7 @@ app.post('/registroPresenca', (req, res) => {
   });
 });
 
+// Rota para buscar todas as presenças
 app.get('/presencas', (req, res) => {
   dataService.getFaltas((err, result) => {
     if (err) {
@@ -89,6 +91,7 @@ app.get('/filterPresencas', (req, res) => {
   });
 });
 
+// Rota para buscar alunos filtrados
 app.get('/filterAlunos', (req, res) => {
   const filters = req.query;
   dataService.getFilteredAlunos(filters, (err, alunos) => {
