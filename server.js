@@ -81,7 +81,7 @@ app.get('/presencas', (req, res) => {
 // Rota para buscar faltas filtradas
 app.get('/filterPresencas', (req, res) => {
   const filters = req.query;
-  axios.get(`${backendUrl}/filterPresencas`, { params: filters })
+  dataService.get(`${backendUrl}/filterPresencas`, { params: filters })
     .then(response => res.json(response.data))
     .catch(err => {
       console.error(err);
