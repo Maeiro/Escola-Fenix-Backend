@@ -15,14 +15,13 @@ async function queryHandler(query, params = []) {
   try {
     console.log(`Executando query: ${query} com parâmetros: ${JSON.stringify(params)}`);
     const res = await client.query(query, params);
-    console.log(`Resultado da query: ${JSON.stringify(res)}`);
+    console.log('Resultado da query:', res);
     return res.rows;
   } catch (err) {
     console.error('Erro ao executar query', err);
     throw err;
   }
 }
-
 
 async function getAllAlunos() {
   return queryHandler('SELECT * FROM alunos');
@@ -54,23 +53,23 @@ async function removeAluno(id) {
 
 async function registerPresenca(alunoId, data, presente) {
   try {
-    console.log(`Registrando presença: alunoId=${alunoId}, data=${data}, presente=${presente}`);
     await client.query('BEGIN');
-    const result = await queryHandler('INSERT INTO presencas (aluno_id, data, presente) VALUES ($1, $2, $3) RETURNING *', [alunoId, data, presente]);
-    console.log(`Resultado da inserção: ${JSON.stringify(result)}`);
+    const insertQuery = 'INSERT INTO presencas (aluno_id, data, presente) VALUES ($1, $2, $3) RETURNING *';
+    const insertResult = await queryHandler(insertQuery, [alunoId, data, presente]);
+    console.log('Resultado da inserção:', insertResult);
+
     if (!presente) {
-      const updateResult = await queryHandler('UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1 RETURNING *', [alunoId]);
-      console.log(`Resultado da atualização: ${JSON.stringify(updateResult)}`);
+      const updateQuery = 'UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1 RETURNING *';
+      const updateResult = await queryHandler(updateQuery, [alunoId]);
+      console.log('Resultado da atualização de faltas:', updateResult);
     }
+
     await client.query('COMMIT');
   } catch (err) {
-    console.error('Erro ao registrar presença:', err);
     await client.query('ROLLBACK');
     throw err;
   }
 }
-
-
 
 async function getFaltas() {
   return queryHandler(`
