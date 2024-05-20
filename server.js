@@ -81,7 +81,7 @@ app.get('/presencas', (req, res) => {
 // Rota para buscar faltas e presenças filtradas
 app.get('/filterPresencas', (req, res) => {
   const filters = req.query;
-  dataService.filterPresencas(filters, (err, result) => {
+  dataService.getFilteredFaltas(filters, (err, result) => {
     if (err) {
       return res.status(500).send('Erro ao filtrar presenças');
     }
