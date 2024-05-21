@@ -125,7 +125,7 @@ async function getFilteredAlunos(filters) {
   let query = 'SELECT * FROM alunos WHERE 1=1'; // Base da query.
   const queryParams = []; // Parâmetros da query.
 
-  for (const [key, value] of Object.entries(filters)) {
+  for (let [key, value] of Object.entries(filters)) {
     if (value !== undefined && value !== '') {
       let column;
       let operator;
