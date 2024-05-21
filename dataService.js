@@ -133,7 +133,7 @@ async function getFilteredAlunos(filters) {
       // Definindo a coluna e o operador com base no tipo de dado
       switch (key) {
         case 'id':
-        case 'totalFaltas':
+        case 'total_faltas':
           column = `alunos.${key}`;
           operator = '=';
           break;
