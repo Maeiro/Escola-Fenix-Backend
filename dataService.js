@@ -88,23 +88,34 @@ async function getFaltas() {
 
 // Função para construir uma query filtrada.
 async function buildFilteredQuery(baseQuery, filters) {
-  let query = baseQuery; // Base da query.
-  const queryParams = []; // Parâmetros da query.
+  let query = baseQuery;
+  const queryParams = [];
 
   for (const [key, value] of Object.entries(filters)) {
     if (value !== undefined && value !== '') {
-      const column = key === 'presente' ? 'presencas.presente' :
-        key === 'totalFaltas' ? 'alunos.total_faltas' :
-          key === 'data' ? 'presencas.data' :
-            key === 'aluno' ? 'alunos.nome' : `alunos.${key}`; // Determina a coluna correta para o filtro.
-      const operator = (key === 'presente' || key === 'data' || key === 'totalFaltas') ? '=' : 'ILIKE'; // Determina o operador.
-      queryParams.push(operator === 'ILIKE' ? `%${value}%` : value); // Adiciona o valor do filtro aos parâmetros.
-      query += ` AND ${column} ${operator} $${queryParams.length}`; // Adiciona a condição à query.
+      let column;
+      let operator = 'ILIKE';
+
+      switch (key) {
+        case 'presente':
+        case 'data':
+        case 'totalFaltas':
+          column = key === 'totalFaltas' ? 'alunos.total_faltas' : `presencas.${key}`;
+          operator = '='; // Use '=' para esses campos
+          queryParams.push(value);
+          break;
+        default:
+          column = `alunos.${key}`;
+          queryParams.push(`%${value}%`);
+          break;
+      }
+
+      query += ` AND ${column} ${operator} $${queryParams.length}`;
     }
   }
 
-  query += ' ORDER BY presencas.data DESC'; // Adiciona a ordenação.
-  return { query, queryParams }; // Retorna a query e os parâmetros.
+  query += ' ORDER BY presencas.data DESC';
+  return { query, queryParams };
 }
 
 // Função para buscar faltas com filtros.

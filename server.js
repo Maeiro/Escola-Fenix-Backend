@@ -88,6 +88,7 @@ app.get('/filterAlunos', async (req, res) => {
     const alunos = await dataService.getFilteredAlunos(filters);
     res.json(alunos);
   } catch (err) {
+    console.error('Erro ao filtrar alunos', err);
     res.status(500).send('Erro ao filtrar alunos');
   }
 });
