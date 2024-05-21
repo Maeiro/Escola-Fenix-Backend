@@ -93,32 +93,11 @@ async function buildFilteredQuery(baseQuery, filters) {
 
   for (const [key, value] of Object.entries(filters)) {
     if (value !== undefined && value !== '') {
-      let column;
-      let operator;
-
-      // Definindo a coluna e o operador com base no tipo de dado
-      switch (key) {
-        case 'presente':
-          column = 'presencas.presente';
-          operator = '=';
-          break;
-        case 'totalFaltas':
-          column = 'alunos.total_faltas';
-          operator = '=';
-          break;
-        case 'data':
-          column = 'presencas.data';
-          operator = '=';
-          break;
-        case 'aluno':
-          column = 'alunos.nome';
-          operator = 'ILIKE';
-          break;
-        default:
-          column = `alunos.${key}`;
-          operator = 'ILIKE';
-      }
-
+      const column = key === 'presente' ? 'presencas.presente' :
+        key === 'totalFaltas' ? 'alunos.total_faltas' :
+          key === 'data' ? 'presencas.data' :
+            key === 'aluno' ? 'alunos.nome' : `alunos.${key}`; // Determina a coluna correta para o filtro.
+      const operator = (key === 'presente' || key === 'data' || key === 'totalFaltas') ? '=' : 'ILIKE'; // Determina o operador.
       queryParams.push(operator === 'ILIKE' ? `%${value}%` : value); // Adiciona o valor do filtro aos parâmetros.
       query += ` AND ${column} ${operator} $${queryParams.length}`; // Adiciona a condição à query.
     }
@@ -143,8 +122,39 @@ async function getFilteredFaltas(filters) {
 
 // Função para buscar alunos com filtros.
 async function getFilteredAlunos(filters) {
-  const baseQuery = 'SELECT * FROM alunos WHERE 1=1'; // Base da query.
-  const { query, queryParams } = await buildFilteredQuery(baseQuery, filters); // Constrói a query filtrada.
+  let query = 'SELECT * FROM alunos WHERE 1=1'; // Base da query.
+  const queryParams = []; // Parâmetros da query.
+
+  for (const [key, value] of Object.entries(filters)) {
+    if (value !== undefined && value !== '') {
+      let column;
+      let operator;
+
+      // Definindo a coluna e o operador com base no tipo de dado
+      switch (key) {
+        case 'id':
+        case 'totalFaltas':
+          column = `alunos.${key}`;
+          operator = '=';
+          break;
+        case 'nome':
+        case 'turma':
+          column = `alunos.${key}`;
+          operator = 'ILIKE';
+          value = `%${value}%`;
+          break;
+        default:
+          column = `alunos.${key}`;
+          operator = '=';
+      }
+
+      queryParams.push(value); // Adiciona o valor do filtro aos parâmetros.
+      query += ` AND ${column} ${operator} $${queryParams.length}`; // Adiciona a condição à query.
+    }
+  }
+
+  query += ' ORDER BY alunos.id'; // Adiciona a ordenação.
+
   return queryHandler(query, queryParams); // Executa a query.
 }
 
