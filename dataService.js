@@ -94,10 +94,10 @@ async function buildFilteredQuery(baseQuery, filters) {
   for (const [key, value] of Object.entries(filters)) {
     if (value !== undefined && value !== '') {
       const column = key === 'presente' ? 'presencas.presente' :
-        key === 'totalFaltas' ? 'alunos.total_faltas' :
+        key === 'total_faltas' ? 'alunos.total_faltas' :
           key === 'data' ? 'presencas.data' :
             key === 'aluno' ? 'alunos.nome' : `alunos.${key}`; // Determina a coluna correta para o filtro.
-      const operator = (key === 'presente' || key === 'data' || key === 'totalFaltas') ? '=' : 'ILIKE'; // Determina o operador.
+      const operator = (key === 'presente' || key === 'data' || key === 'total_faltas') ? '=' : 'ILIKE'; // Determina o operador.
       queryParams.push(operator === 'ILIKE' ? `%${value}%` : value); // Adiciona o valor do filtro aos parâmetros.
       query += ` AND ${column} ${operator} $${queryParams.length}`; // Adiciona a condição à query.
     }
