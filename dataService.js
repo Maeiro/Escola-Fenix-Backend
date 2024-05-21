@@ -86,36 +86,45 @@ async function getFaltas() {
   `); // Executa uma query para buscar todas as faltas, juntando dados de alunos e ordenando por data.
 }
 
-// Função para construir uma query filtrada.
+/**
+ * Constrói uma query SQL dinamicamente com base nos filtros fornecidos.
+ *
+ * @param {string} baseQuery - A base da query SQL.
+ * @param {object} filters - Um objeto contendo os filtros fornecidos.
+ * @returns {object} Um objeto contendo a query construída e os parâmetros.
+ */
 async function buildFilteredQuery(baseQuery, filters) {
-  let query = baseQuery;
-  const queryParams = [];
+  let query = baseQuery; // Inicializa a query com a base fornecida.
+  const queryParams = []; // Array para armazenar os parâmetros da query.
 
+  // Itera sobre cada par [chave, valor] nos filtros fornecidos.
   for (const [key, value] of Object.entries(filters)) {
-    if (value !== undefined && value !== '') {
-      let column;
-      let operator = 'ILIKE';
+    if (value !== undefined && value !== '') { // Apenas considera filtros que possuem valor definido e não vazio.
+      let column; // Variável para armazenar o nome da coluna correspondente ao filtro.
+      let operator = 'ILIKE'; // Define o operador padrão como 'ILIKE' para comparações case-insensitive.
 
+      // Determina a coluna e o operador com base na chave do filtro.
       switch (key) {
-        case 'presente':
-        case 'data':
-        case 'totalFaltas':
-          column = key === 'totalFaltas' ? 'alunos.total_faltas' : `presencas.${key}`;
-          operator = '='; // Use '=' para esses campos
-          queryParams.push(value);
+        case 'presente': // Filtro de presença.
+        case 'data': // Filtro de data.
+        case 'totalFaltas': // Filtro de total de faltas.
+          column = key === 'totalFaltas' ? 'alunos.total_faltas' : `presencas.${key}`; // Define a coluna correta.
+          operator = '='; // Usa o operador '=' para comparações exatas nesses campos.
+          queryParams.push(value); // Adiciona o valor do filtro aos parâmetros da query.
           break;
-        default:
-          column = `alunos.${key}`;
-          queryParams.push(`%${value}%`);
+        default: // Para todos os outros filtros (strings).
+          column = `alunos.${key}`; // Assume que a coluna está na tabela 'alunos'.
+          queryParams.push(`%${value}%`); // Usa 'ILIKE' para buscar strings que contenham o valor fornecido.
           break;
       }
 
+      // Adiciona a condição do filtro à query.
       query += ` AND ${column} ${operator} $${queryParams.length}`;
     }
   }
 
-  query += ' ORDER BY presencas.data DESC';
-  return { query, queryParams };
+  query += ' ORDER BY presencas.data DESC'; // Adiciona a cláusula de ordenação por data em ordem decrescente.
+  return { query, queryParams }; // Retorna a query construída e os parâmetros.
 }
 
 // Função para buscar faltas com filtros.
