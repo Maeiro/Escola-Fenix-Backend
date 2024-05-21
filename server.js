@@ -118,3 +118,5 @@ app.listen(port, () => {
   console.log(`Servidor rodando na porta ${port}`);
   console.log('Backend iniciado com sucesso!');
 });
+
+module.exports = app;
