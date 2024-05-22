@@ -75,15 +75,29 @@ async function registerPresenca(alunoId, data, presente) {
   }
 }
 
-// Função para buscar todas as faltas.
-async function getFaltas() {
-  return queryHandler(`
+// Função para buscar todas as faltas com paginação.
+async function getFaltas(page = 1, limit = 10) {
+  const offset = (page - 1) * limit;
+  const totalFaltasQuery = 'SELECT COUNT(*) FROM presencas';
+  const totalFaltasResult = await queryHandler(totalFaltasQuery);
+  const totalItems = parseInt(totalFaltasResult[0].count, 10);
+
+  const faltasQuery = `
     SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, 
            alunos.nome AS aluno_nome, alunos.turma, alunos.total_faltas
     FROM presencas
     JOIN alunos ON presencas.aluno_id = alunos.id
     ORDER BY presencas.data DESC
-  `); // Executa uma query para buscar todas as faltas, juntando dados de alunos e ordenando por data.
+    LIMIT $1 OFFSET $2
+  `;
+  const faltas = await queryHandler(faltasQuery, [limit, offset]);
+
+  return {
+    totalItems,
+    totalPages: Math.ceil(totalItems / limit),
+    currentPage: page,
+    faltas
+  };
 }
 
 // Função para construir uma query filtrada.
