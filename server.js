@@ -65,7 +65,9 @@ app.post('/registroPresenca', async (req, res) => {
 
 app.get('/presencas', async (req, res) => {
   try {
-    const result = await dataService.getFaltas();
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+    const result = await dataService.getPresencas(page, limit);
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar presenças' });

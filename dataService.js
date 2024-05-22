@@ -76,7 +76,7 @@ async function registerPresenca(alunoId, data, presente) {
 }
 
 // Função para buscar todas as faltas com paginação.
-async function getFaltas(page = 1, limit = 10) {
+async function getPresencas(page = 1, limit = 10) {
   const offset = (page - 1) * limit;
   const totalFaltasQuery = 'SELECT COUNT(*) FROM presencas';
   const totalFaltasResult = await queryHandler(totalFaltasQuery);
@@ -225,7 +225,7 @@ module.exports = {
   updateAluno,
   removeAluno,
   registerPresenca,
-  getFaltas,
+  getPresencas,
   getFilteredFaltas,
   getFilteredAlunos,
   removePresenca,
