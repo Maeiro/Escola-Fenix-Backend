@@ -65,7 +65,7 @@ async function registerPresenca(alunoId, data, presente) {
 
     if (!presente) {
       const updateQuery = 'UPDATE alunos SET total_faltas = total_faltas + 1 WHERE id = $1 RETURNING *'; // Query para atualizar faltas.
-      const updateResult = await queryHandler(updateQuery, [alunoId]); // Atualiza o total de faltas do aluno.
+      const updateResult = await queryHandler(updateQuery, [alunoId]); // Atualiza o total de presencas do aluno.
     }
 
     await client.query('COMMIT'); // Confirma a transação.
@@ -75,14 +75,14 @@ async function registerPresenca(alunoId, data, presente) {
   }
 }
 
-// Função para buscar todas as faltas com paginação.
+// Função para buscar todas as presencas com paginação.
 async function getPresencas(page = 1, limit = 10) {
   const offset = (page - 1) * limit;
-  const totalFaltasQuery = 'SELECT COUNT(*) FROM presencas';
-  const totalFaltasResult = await queryHandler(totalFaltasQuery);
-  const totalItems = parseInt(totalFaltasResult[0].count, 10);
+  const totalPresencasQuery = 'SELECT COUNT(*) FROM presencas';
+  const totalPresencasResult = await queryHandler(totalPresencasQuery);
+  const totalItems = parseInt(totalPresencasResult[0].count, 10);
 
-  const faltasQuery = `
+  const presencasQuery = `
     SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, 
            alunos.nome AS aluno_nome, alunos.turma, alunos.total_faltas
     FROM presencas
@@ -90,13 +90,13 @@ async function getPresencas(page = 1, limit = 10) {
     ORDER BY presencas.data DESC
     LIMIT $1 OFFSET $2
   `;
-  const faltas = await queryHandler(faltasQuery, [limit, offset]);
+  const presencas = await queryHandler(presencasQuery, [limit, offset]);
 
   return {
     totalItems,
     totalPages: Math.ceil(totalItems / limit),
     currentPage: page,
-    faltas
+    presencas
   };
 }
 
@@ -121,8 +121,8 @@ async function buildFilteredQuery(baseQuery, filters) {
   return { query, queryParams }; // Retorna a query e os parâmetros.
 }
 
-// Função para buscar faltas com filtros.
-async function getFilteredFaltas(filters) {
+// Função para buscar presencas com filtros.
+async function getFilteredPresencas(filters) {
   const baseQuery = `
     SELECT presencas.id, presencas.aluno_id, presencas.data, presencas.presente, 
            alunos.nome AS aluno_nome, alunos.turma, alunos.total_faltas
@@ -226,7 +226,7 @@ module.exports = {
   removeAluno,
   registerPresenca,
   getPresencas,
-  getFilteredFaltas,
+  getFilteredPresencas,
   getFilteredAlunos,
   removePresenca,
   updatePresenca

@@ -77,7 +77,7 @@ app.get('/presencas', async (req, res) => {
 app.get('/filterPresencas', async (req, res) => {
   try {
     const filters = req.query;
-    const result = await dataService.getFilteredFaltas(filters);
+    const result = await dataService.getFilteredPresencas(filters);
     res.json(result);
   } catch (err) {
     res.status(500).send('Erro ao filtrar presenças');
